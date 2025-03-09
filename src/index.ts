@@ -16,7 +16,8 @@ app
   .get("/", (_req: Request, res: Response) => res.send("Bem-vindo ao sistema de integração com Google Calendar!"))
   .get("/health", (_req: Request, res: Response) => res.send("OK!"))
   .use("/auth", router.googleAuthRoute)
-  .use("/user", router.userRoute);
+  .use("/user", router.userRoute)
+  .use("/schedule", router.scheduleRoute);
 
 app.use("*", (_req: Request, res: Response) => res.status(404).send({ message: "Rota não encontrada! 🤷‍♂️" }));
 app.use(errorHandler);

@@ -54,6 +54,12 @@ export const signin = async (data: SignIn): Promise<ServiceRes> => {
 };
 
 export const updateUser = async (userID: string, data: SignUp): Promise<ServiceRes> => {
+  const user = await getUserById(userID);
+  if (user.email !== data.email) {
+    const existingUser = await getUserByEmail(data.email);
+    if (existingUser) throw new CustomError("Email já cadastrado", 409);
+  }
+
   if (data.password) {
     data.password = await bcrypt.hash(data.password, 10);
   }

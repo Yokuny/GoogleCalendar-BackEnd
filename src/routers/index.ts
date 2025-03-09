@@ -1,2 +1,3 @@
-export * from "./user.route";
-export * from "./auth.route";
+export { userRoute } from "./user.route";
+export { googleAuthRoute } from "./auth.route";
+export { scheduleRoute } from "./schedule.route";

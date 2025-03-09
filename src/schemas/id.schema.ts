@@ -8,3 +8,6 @@ export const idSchema = z.object({
 export const idSchemaOptional = z.object({
   id: z.string().refine(validObjectID, objectIdMessage()).optional(),
 });
+
+export type idFilter = z.infer<typeof idSchema>;
+export type idFilterOptional = z.infer<typeof idSchemaOptional>;
