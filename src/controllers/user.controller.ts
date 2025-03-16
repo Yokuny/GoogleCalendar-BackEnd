@@ -35,3 +35,23 @@ export const updateUser = async (req: AuthReq, res: Response, next: NextFunction
     next(err);
   }
 };
+
+export const setGoogleToken = async (req: AuthReq, res: Response, next: NextFunction) => {
+  try {
+    const resp = await service.setGoogleToken(req.userAndEmail.user, req.body.token);
+
+    return res.status(200).json(respObj(resp));
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getGoogleToken = async (req: AuthReq, res: Response, next: NextFunction) => {
+  try {
+    const resp = await service.googleRefreshToken(req.userAndEmail.user);
+
+    return res.status(200).json(respObj(resp));
+  } catch (err) {
+    next(err);
+  }
+};

@@ -18,3 +18,7 @@ export const getUserByEmail = (email: string) => {
 export const updateUser = (userID: string, data: SignUp) => {
   return User.updateOne({ _id: userID }, { $set: data });
 };
+
+export const setGoogleAccessToken = (userID: string, googleData: any) => {
+  return User.updateOne({ _id: userID }, { $set: { googleAuth: googleData.googleAuth } });
+};

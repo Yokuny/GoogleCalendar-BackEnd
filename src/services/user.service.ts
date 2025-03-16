@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import axios from "axios";
 
 import * as repository from "../repositories/user.repository";
 import { returnMessage, returnData } from "../helpers/responsePattern.helper";
@@ -72,5 +73,66 @@ export const updateUser = async (userID: string, data: SignUp): Promise<ServiceR
 
   await repository.updateUser(userID, newUser);
 
-  return returnMessage("Dados atualizados com sucesso");
+  return returnMessage("Usuário atualizado com sucesso");
+};
+
+export const setGoogleToken = async (userID: string, token: string): Promise<ServiceRes> => {
+  await getUserById(userID);
+
+  const clientID = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const redirectURI = process.env.GOOGLE_REDIRECT_URI_LOCAL;
+
+  const body = {
+    client_id: clientID,
+    client_secret: clientSecret,
+    code: token,
+    redirect_uri: redirectURI,
+    grant_type: "authorization_code",
+  };
+
+  const { data } = await axios.post("https://oauth2.googleapis.com/token", body);
+
+  const googleAuthData = {
+    googleAuth: {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresAt: new Date(Date.now() + data.expires_in * 1000),
+    },
+  };
+
+  await repository.setGoogleAccessToken(userID, googleAuthData);
+  return returnMessage("Usuário atualizado com sucesso");
+};
+
+export const googleRefreshToken = async (userID: string): Promise<ServiceRes> => {
+  const user = await getUserById(userID);
+  if (!user.googleAuth) throw new CustomError("Usuário não possui token de acesso do Google", 400);
+
+  const { accessToken, refreshToken, expiresAt } = user.googleAuth;
+  if (expiresAt > new Date()) return returnData({ accessToken, expiresAt });
+
+  const clientID = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  const body = {
+    client_id: clientID,
+    client_secret: clientSecret,
+    refresh_token: refreshToken,
+    grant_type: "refresh_token",
+  };
+
+  const { data } = await axios.post("https://oauth2.googleapis.com/token", body);
+
+  const googleAuthData = {
+    googleAuth: {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresAt: new Date(Date.now() + data.expires_in * 1000),
+    },
+  };
+
+  await repository.setGoogleAccessToken(userID, googleAuthData);
+  const { access_token, expires_in } = data;
+  return returnData({ access_token, expires_in });
 };
