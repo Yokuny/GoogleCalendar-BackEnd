@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
     refreshToken: { type: String, required: false },
     expiresAt: { type: Date, required: false },
   },
+  googleCalendarID: { type: String, required: false },
 });
 
 export const User = mongoose.model("User", userSchema);

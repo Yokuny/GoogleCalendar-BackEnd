@@ -22,3 +22,7 @@ export const updateUser = (userID: string, data: SignUp) => {
 export const setGoogleAccessToken = (userID: string, googleData: any) => {
   return User.updateOne({ _id: userID }, { $set: { googleAuth: googleData.googleAuth } });
 };
+
+export const setGoogleCalendarID = (userID: string, calendarID: string) => {
+  return User.updateOne({ _id: userID }, { $set: { googleCalendarID: calendarID } });
+};

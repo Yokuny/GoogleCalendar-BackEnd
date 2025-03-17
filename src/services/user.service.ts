@@ -83,6 +83,7 @@ export const setGoogleToken = async (userID: string, token: string): Promise<Ser
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const redirectURI = process.env.GOOGLE_REDIRECT_URI_LOCAL;
 
+  const endpoint = "https://oauth2.googleapis.com/token";
   const body = {
     client_id: clientID,
     client_secret: clientSecret,
@@ -91,7 +92,7 @@ export const setGoogleToken = async (userID: string, token: string): Promise<Ser
     grant_type: "authorization_code",
   };
 
-  const { data } = await axios.post("https://oauth2.googleapis.com/token", body);
+  const { data } = await axios.post(endpoint, body);
 
   const googleAuthData = {
     googleAuth: {
@@ -105,16 +106,17 @@ export const setGoogleToken = async (userID: string, token: string): Promise<Ser
   return returnMessage("Usuário atualizado com sucesso");
 };
 
-export const googleRefreshToken = async (userID: string): Promise<ServiceRes> => {
+export const refreshGoogleToken = async (userID: string): Promise<{ accessToken: string; expiresAt: Date }> => {
   const user = await getUserById(userID);
   if (!user.googleAuth) throw new CustomError("Usuário não possui token de acesso do Google", 400);
 
   const { accessToken, refreshToken, expiresAt } = user.googleAuth;
-  if (expiresAt > new Date()) return returnData({ accessToken, expiresAt });
+  if (expiresAt > new Date()) return { accessToken, expiresAt };
 
   const clientID = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
+  const endpoint = "https://oauth2.googleapis.com/token";
   const body = {
     client_id: clientID,
     client_secret: clientSecret,
@@ -122,17 +124,56 @@ export const googleRefreshToken = async (userID: string): Promise<ServiceRes> =>
     grant_type: "refresh_token",
   };
 
-  const { data } = await axios.post("https://oauth2.googleapis.com/token", body);
+  const { data } = await axios.post(endpoint, body);
+  if (!data.access_token) throw new CustomError("Erro ao atualizar token de acesso do Google", 400);
+
+  const access_token = data.access_token;
+  const expires_in = new Date(Date.now() + data.expires_in * 1000);
 
   const googleAuthData = {
     googleAuth: {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresAt: new Date(Date.now() + data.expires_in * 1000),
+      accessToken: access_token,
+      refreshToken: refreshToken,
+      expiresAt: expires_in,
     },
   };
 
   await repository.setGoogleAccessToken(userID, googleAuthData);
-  const { access_token, expires_in } = data;
-  return returnData({ access_token, expires_in });
+
+  return { accessToken: access_token, expiresAt: expires_in };
+};
+
+export const googleRefreshToken = async (userID: string): Promise<ServiceRes> => {
+  const user = await refreshGoogleToken(userID);
+
+  return returnData({ accessToken: user.accessToken, expiresAt: user.expiresAt });
+};
+
+const createGoogleCalendar = async (userID: string) => {
+  try {
+    const user = await refreshGoogleToken(userID);
+    const { accessToken } = user;
+
+    const endpoint = "https://www.googleapis.com/calendar/v3/calendars";
+    const body = {
+      summary: "DentalEase",
+      description: "Agendamentos",
+      timeZone: "America/Sao_Paulo",
+    };
+    const header = { headers: { Authorization: `Bearer ${accessToken}` } };
+
+    const { data } = await axios.post(endpoint, body, header);
+    if (!data.id) throw new CustomError("Erro ao criar calendário do Google", 400);
+
+    await repository.setGoogleCalendarID(userID, data.id);
+    return data.id;
+  } catch (e) {}
+};
+
+export const getGoogleCalendarID = async (userID: string) => {
+  const user = await getUserById(userID);
+  if (user.googleCalendarID) return user.googleCalendarID;
+
+  const calendarID = await createGoogleCalendar(userID);
+  return calendarID;
 };

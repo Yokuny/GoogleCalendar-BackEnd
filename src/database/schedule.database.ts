@@ -5,6 +5,7 @@ const scheduleSchema = new mongoose.Schema({
   description: { type: String, required: true },
   startTime: { type: Date, required: true },
   endTime: { type: Date },
+  googleEventID: { type: String },
   createdAt: { type: Date, default: Date.now },
 });
 
