@@ -15,7 +15,6 @@ app
   .use(cors(corsOptions))
   .get("/", (_req: Request, res: Response) => res.send("Bem-vindo ao sistema de integração com Google Calendar!"))
   .get("/health", (_req: Request, res: Response) => res.send("OK!"))
-  .use("/auth", router.googleAuthRoute)
   .use("/user", router.userRoute)
   .use("/schedule", router.scheduleRoute);
 
